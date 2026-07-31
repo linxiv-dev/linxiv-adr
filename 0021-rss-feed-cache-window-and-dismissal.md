@@ -59,13 +59,26 @@ The response is still *sorted* newest-published-first
 (`COALESCE(PUBLISHED_AT, FETCHED_AT) DESC`); only the retention cutoff uses
 fetch time.
 
+### Terminology: "DOI dismissal", not "permanent dismissal"
+
+The API's `dismiss` request body has a boolean field literally named
+`permanent`, and it's tempting to call the resulting state "permanent
+dismissal." Avoid that term in docs/UI copy — it invites exactly the
+confusion this ADR exists to correct (see the note below). There is no
+separate "permanent" mechanism: `permanent: true` does one specific thing —
+it sets `RSS_PAPER_ROOTS.REMOVAL_TYPE = 'DOI'`, blocking the whole paper
+(every version) from `blocked_source_ids` checks going forward. Call this
+**DOI dismissal**, matching the column value, and reserve "permanent" (if
+used at all) for describing that the *dismissal record* is never automatically
+removed — not that any particular row is kept forever.
+
 ### Dismissed entries are not exempt from window pruning
 
-Permanently-dismissed entries (`RSS_PAPER_ROOTS.REMOVAL_TYPE = 'DOI'`) age
-out of the cache window like any other row — pruning does not check
-dismissal state. This is intentional: the durable fact of dismissal lives in
+DOI-dismissed entries (`RSS_PAPER_ROOTS.REMOVAL_TYPE = 'DOI'`) age out of the
+cache window like any other row — pruning does not check dismissal state.
+This is intentional: the durable fact of dismissal lives in
 `RSS_PAPER_ROOTS`, not in the presence of a `RSS_CACHE_ENTRY` row. If a
-dismissed entry's cache row is pruned and the paper is later re-fetched
+DOI-dismissed entry's cache row is pruned and the paper is later re-fetched
 upstream, `annotate_and_filter` still filters it out via
 `blocked_source_ids`/`dismissed_versions` — nothing depends on keeping the
 cache row around. Covered by
@@ -75,17 +88,20 @@ cache row around. Covered by
 > dismissed entries are "exempt from the window prune and kept indefinitely."
 > That was aspirational/inaccurate at ship time — the implemented behavior,
 > and the behavior this ADR documents, is that dismissal state and cache rows
-> are decoupled, and cache rows always age out.
+> are decoupled, and cache rows always age out. The same "permanent = kept
+> forever" confusion is still live in the settings UI copy today — see
+> Consequences below.
 
 ### Two-tier dismissal
 
 `rss::dismiss` supports two removal types on a per-request `permanent` flag:
-- **Permanent** (`RSS_PAPER_ROOTS.REMOVAL_TYPE = 'DOI'`) blocks the whole
-  paper, every version, forever.
-- **Per-version** (`RSS_PAPER.REMOVAL_TYPE = 'VER'`, the default) dismisses
-  only the exact `(source_id, version)` row. A later, higher version is a
-  distinct row and resurfaces undismissed — this is deliberate: a new version
-  of a paper is new information the user hasn't seen yet.
+- **DOI dismissal** (`permanent: true` → `RSS_PAPER_ROOTS.REMOVAL_TYPE =
+  'DOI'`) blocks the whole paper, every version, forever.
+- **Per-version dismissal** (`permanent: false`, the default →
+  `RSS_PAPER.REMOVAL_TYPE = 'VER'`) dismisses only the exact `(source_id,
+  version)` row. A later, higher version is a distinct row and resurfaces
+  undismissed — this is deliberate: a new version of a paper is new
+  information the user hasn't seen yet.
 
 ### Load cap vs. response cap, and truncation ordering
 
@@ -123,6 +139,10 @@ fully pruned).
 ### Negative / limits
 - `RSS_CACHE_ENTRY` can retain rows for dismissed papers until they age out of
   the retention window — not an immediate cleanup, just a bounded one.
+- `HomeFeedSection.tsx`'s retention-days setting description currently reads
+  "permanently dismissed papers are always kept," which is incorrect per the
+  behavior documented above (cache rows always age out; only the dismissal
+  record is kept). User-facing copy bug, not yet fixed as of this ADR.
 - The 500-row load cap can theoretically starve the 200-row response of a
   genuinely-newest entry on a high-volume feed (see load cap trade-off above).
 - `LAST_FETCH` is an unbounded in-process map; fine while one home-feed URL is
