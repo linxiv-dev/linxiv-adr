@@ -8,7 +8,7 @@ Status: accepted — confirmed by spike `wl6398iw4` (verified against `tauri 2.1
 The embedded editor's iframe address is **derived from `import.meta.env.DEV`**, not a hard-coded same-origin path:
 
 - **dev:** `EDITOR_SRC = http://localhost:5173/editor`, `EDITOR_ORIGIN = http://localhost:5173` — the editor's own Vite dev server.
-- **prod:** `EDITOR_SRC = texbrain://localhost/editor`, `EDITOR_ORIGIN = texbrain://localhost` — served from the plugin cache by the `tauri-plugin-texbrain` custom scheme (ADR 0016).
+- **prod:** `EDITOR_SRC = texbrain://localhost/editor`, `EDITOR_ORIGIN = texbrain://localhost` (on Windows/WebView2 the registered scheme resolves to `http://texbrain.localhost` instead — see `schemeOrigin()` in `editorConfig.ts`) — served from the plugin cache by the `tauri-plugin-texbrain` custom scheme (ADR 0016).
 
 Only the `/editor` **path** is constant; the **origin/scheme is environment-derived**. The host↔editor postMessage bridge is **pinned cross-origin** (never `'*'`) and already works this way — it's how the embed has run throughout development. The SwiftLaTeX worker's `credentials:'same-origin'` asset fetches are satisfied because the editor document and its assets share the editor's *own* origin (`localhost:5173` in dev, `texbrain://localhost` in prod) — same-origin is required between the editor and its assets, not between the editor and the host SPA.
 

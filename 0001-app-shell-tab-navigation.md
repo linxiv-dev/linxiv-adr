@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR 0024](0024-url-routing-via-react-router.md) — the PyQt `QStackedWidget` shell this decision governed is gone; the React port uses a `react-router` route table, the very mechanism this ADR deliberately rejected for the widget shell. Kept as the historical record of the PyQt-era navigation model.
 
 ## Context
 

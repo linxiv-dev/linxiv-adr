@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR 0025](0025-in-process-rust-backend-no-sidecar.md) — the Python API sidecar this decision managed no longer exists; the Rust backend is in-process and all of this machinery was deleted with it. Kept as the historical record of the sidecar era.
 
 ## Context
 

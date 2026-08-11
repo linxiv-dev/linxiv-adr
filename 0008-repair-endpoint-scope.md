@@ -12,7 +12,7 @@ Two design questions needed resolution before shipping:
 
 1. **HTTP verb**: A partial update (PATCH) would require the client to send only the fields it wants to change. A full replace (PUT) requires all mandatory fields on every call.
 
-2. **source_id mutability**: A paper's `source_id` (e.g. `arxiv:2204.12985`, `doi:10.1234/...`) is its identity key in the system — it is used as a FK in PAPER_ROOTS, as a string key in PAPER and PAPER_TO_TAG, and as the key in the FTS index. Renaming it requires a multi-table migration (see `db.repair_paper`). Should that migration be exposable via HTTP?
+2. **source_id mutability**: A paper's `source_id` (e.g. `arxiv:2204.12985`, `doi:10.1234/...`) is its identity key in the system — it is used as a FK in PAPER_ROOTS, as a string key in PAPER and PAPER_TO_TAG, and as the key in the FTS index. Renaming it requires a multi-table migration (see `storage::queries::paper::repair_paper`). Should that migration be exposable via HTTP?
 
 ## Decision
 
@@ -24,13 +24,15 @@ Two design questions needed resolution before shipping:
 
 ### 2. source_id is not changeable via this endpoint
 
-`api_repair_paper` constructs `PaperMetadata` with `source_id=paper.source_id` (the existing ID, never from the request body). This makes the `if new_id != old_id:` migration branch in `db.repair_paper` unreachable through HTTP.
+The repair handler (`repair` in `src-tauri/src/route/papers.rs`) constructs `PaperMetadata` with `source_id: paper.source_id` (the existing ID, never from the request body). This makes the `renamed` migration branch in `storage::queries::paper::repair_paper` unreachable through HTTP.
 
 **Reason:** Renaming a paper's identity key is a dangerous operation that changes the FTS index, all version rows, and all tag associations in a single transaction. It is only needed for import/export workflows (e.g. resolving a DOI that maps to a different arXiv ID during an import). Exposing it via a general-purpose metadata editor would allow accidental identity corruption with no undo path. If source_id migration is ever needed via HTTP, it should be a dedicated endpoint with explicit conflict detection and confirmation semantics, not the general repair endpoint.
 
 ### 3. Conflict detection returns 409
 
 If a source_id rename were somehow triggered (or if concurrent writes produce a constraint violation), `api_repair_paper` catches `sqlite3.IntegrityError` and returns HTTP 409 rather than letting it propagate as an unhandled 500 with a raw SQLite message.
+
+> **Amended 2026-08-10:** this sub-decision was deliberately dropped in the Rust port. Since decision 2 means the route never renames `source_id`, no UNIQUE conflict can arise from repair, so `route/papers.rs::repair` has no 409 mapping — a stray constraint error surfaces as a 500. Decisions 1 and 2 stand unchanged (the code cites this ADR).
 
 ## Consequences
 
@@ -45,7 +47,9 @@ If a source_id rename were somehow triggered (or if concurrent writes produce a 
 
 ## References
 
-- `api/app.py` — `api_repair_paper`, `PaperRepairBody`
-- `storage/db.py` — `repair_paper` (contains the source_id migration branch)
+- `src-tauri/src/route/papers.rs` — `repair` (`PUT /api/papers/sfk/{fk}`), `RepairBody`
+- `src-tauri/crates/core/src/storage/queries/paper.rs` — `repair_paper` (contains the source_id migration branch); validated via `service::paper::repair_paper`
 - `src/api/papers.ts` — `repairPaper` client function
 - `src/components/papers/PaperMetadataEditor.tsx` — the UI that calls this endpoint
+
+> Re-grounded on the Rust codebase, 2026-08-10 (the decision predates the Rust port).

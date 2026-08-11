@@ -26,6 +26,7 @@ The message protocol is:
 | Direction | `type` | Payload | Purpose |
 |---|---|---|---|
 | iframe → parent | `paper_clicked` | `{ id: string }` | Navigate to paper detail |
+| iframe → parent | `author_clicked` | `{ id: string }` | Navigate to author page (added after this ADR; same contract) |
 | iframe → parent | `selection_changed` | `{ sourceIds: string[] }` | Update selection state in parent (also re-emitted after every in-place reload, pruned to surviving nodes) |
 | iframe → parent | `graph_loaded` | `{ ok: boolean }` | Signal a data (re)load finished, so the parent can clear its "refreshing" state |
 | parent → iframe | `clear_selection` | — | Tell graph to deselect all nodes |

@@ -40,7 +40,9 @@ The alternative used was a two-column `UNIQUE(PROVIDER, RAW_ID)` constraint on `
 
 ## References
 
-- `PAPER_ROOTS` — `SOURCE_ID UNIQUE` constraint
-- `storage/db.py` — `repair_paper`, `add_paper_tags`, `search_full_text`
-- `sources/base.py` — `PaperSource.source_name`, `PaperMetadata.source`
+- `src-tauri/crates/core/sql/tables/PAPER_ROOTS.sql` — `SOURCE_ID UNIQUE` constraint
+- `src-tauri/crates/core/src/storage/queries/paper.rs` — `repair_paper`, `add_paper_tags`; `src-tauri/crates/core/src/storage/queries/search.rs` — `search_full_text`
+- `src-tauri/crates/core/src/models.rs` — `PaperMetadata.source`, `strip_namespace`, `is_arxiv_source_id`; per-provider modules in `src-tauri/crates/core/src/sources/` (`arxiv.rs`, `openalex.rs`)
 - `CONTEXT.md` — source_id (namespaced), Paper Repair, Merge Papers
+
+> Re-grounded on the Rust codebase, 2026-08-10 (the decision predates the Rust port).

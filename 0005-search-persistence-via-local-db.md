@@ -14,10 +14,10 @@ The user's workflow often involves large batch searches (100+ results) against r
 
 Search state is persisted in two local SQLite tables:
 
-- **`search_history`**: a log of past searches (clauses, source, maxResults, timestamp). Surfaced as autocomplete suggestions in the clause input field after typing characters.
-- **`search_results`**: the current working set of results, which can be a mix accumulated from multiple searches (deduplicated by source ID). Persists across restarts. Cleared explicitly by the user. Append is also a second class behavior, users choose to use, papers don't pile up with out them being aware.
+- **`SEARCH_HISTORY`**: a log of past searches (clauses, source, maxResults, timestamp). Surfaced as autocomplete suggestions in the clause input field after typing characters.
+- **`SEARCH_STATE`** (single row; `RESULTS_JSON`): the current working set of results, which can be a mix accumulated from multiple searches (deduplicated by source ID). Persists across restarts. Cleared explicitly by the user. Append is also a second class behavior, users choose to use, papers don't pile up with out them being aware.
 
-The Search page restores from `search_results` on mount — it no longer needs to be keep-alive. 
+The Search page restores from `SEARCH_STATE` on mount — it no longer needs to be keep-alive. 
 The Graph page remains keep-alive (iframe reload is unavoidable). But this is being reconsidered, a refresh button doesn't look good in UI, manually refreshing via right-click is impractical.
 
 A plain **Search** button replaces the current working set. A **+** button adjacent to it appends new results to the existing set. Minus (-) for clearing results, to match.
@@ -38,5 +38,7 @@ Users can configure how many result batches to retain in advanced settings (defa
 
 ## References
 
-- `storage/db.py` — where the new tables will live
-- `src/pages/SearchPage.tsx` — consumer
+- `src-tauri/crates/core/src/storage/queries/search_history.rs`, `search_state.rs` — where the tables live (DDL in `src-tauri/crates/core/sql/tables/SEARCH_HISTORY.sql`, `SEARCH_STATE.sql`)
+- `src/pages/SearchPage.tsx` — consumer (via `src/api/searchState.ts`)
+
+> Re-grounded on the Rust codebase, 2026-08-10 (the decision predates the Rust port).

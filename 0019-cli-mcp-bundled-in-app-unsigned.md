@@ -8,7 +8,7 @@ Accepted
 
 linXiv exposes three backend surfaces: the desktop app (GUI), a CLI, and an MCP
 server. Today all three ship as PyInstaller sidecars bundled inside the Tauri
-app; the planned Rust port (`docs/rust-port-plan.md`) keeps the same three-binary
+app; the planned Rust port (`docs/rust-port-plan.md`, since removed after the port completed) keeps the same three-binary
 shape — `linxiv-app` + `linxiv-cli` + `linxiv-mcp`.
 
 The open question (plan D27) was whether the CLI and MCP should *also* be
@@ -55,5 +55,5 @@ and the future Rust binaries.
 
 ## References
 
-- `docs/rust-port-plan.md` — D27 (distribution), D26 (packaging)
+- `docs/rust-port-plan.md` — D27 (distribution), D26 (packaging) — plan doc since removed from the repo
 - `src-tauri/src/integrations.rs` — `resolve_install_sidecar`

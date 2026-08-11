@@ -1,4 +1,4 @@
-# ADR 0010: Service layer is the only import boundary for api/app.py
+# ADR 0010: Service layer is the only boundary for consumers
 
 ## Status
 
@@ -6,31 +6,40 @@ Accepted
 
 ## Context
 
-`api/app.py` previously imported write functions (`save_paper`, `save_paper_metadata`, `save_papers_metadata`) and several utilities (`get_categories`, `get_tags`, `init_db`, `parse_entry_id`) directly from `storage.db`, bypassing `service/paper.py`. This created two parallel write paths into storage: one through the service layer and one directly into storage. Any invariant added to the service save path (e.g. opportunistic version capture triggered on every paper save) would silently be skipped by the direct callers — arXiv fetch, OpenAlex save, and BibTeX import.
+Originally written about the Python backend: `api/app.py` imported write functions directly from `storage.db`, bypassing `service/paper.py`, which created two parallel write paths into storage — any invariant added to the service save path (e.g. opportunistic version capture on every paper save) would silently be skipped by the direct callers.
 
-The same issue existed for tag queries: `api/app.py` called `storage.db.get_tags()` directly instead of the service-layer equivalent.
+The Rust port replaced the single FastAPI consumer with **three** consumers of `linxiv-core`: the Tauri route dispatcher (`src-tauri/src/route/`), the CLI (`src-tauri/crates/cli/`), and the MCP server (`src-tauri/crates/mcp/`). The failure mode the rule prevents got three times worse: a rule enforced in only one consumer (validation, vault cleanup, note-merge on search) silently diverges on the other two. The 2026-08-06 architecture review documented exactly this happening — see TODO.md "Architecture review findings", sections "Domain operations assembled inside route handlers" and "Validation and error mapping repeated per consumer".
 
 ## Decision
 
-`api/app.py` must not import from `storage.*` for paper read/write operations. All such calls route through the appropriate service module (`service.paper`, `service.tag`, etc.).
+Consumers of `linxiv-core` — the route dispatcher, the CLI, and the MCP server — call **`service::*` only**. Both lower layers are behind that boundary:
 
-Functions that previously lived only in `storage.db` are re-exported from `service/paper.py` as pass-through delegates (e.g. `save_paper`, `save_paper_metadata`, `save_papers_metadata`, `get_categories`, `init_db`, `parse_entry_id`). The delegate approach lets the service layer add business logic (logging, version capture, validation) in one place later without changing call sites.
+- **`storage::*`** — persistence. No consumer calls `storage::queries::*` or opens connections directly.
+- **`sources::*`** — provider fetch (arXiv, OpenAlex, Crossref, feeds). No consumer orchestrates fetch pipelines itself; a fetch-and-store operation is a service function so all three surfaces get the same pipeline.
 
-`api/app.py` still imports directly from `storage.notes`, `storage.projects`, and `storage.tags` for the domains whose service modules have not yet absorbed their full surface area. Those are tracked as open TODO items and will be resolved as the service layer matures (see TODO.md — Architecture & Backend Integrity).
+Domain rules (validation, guards, side effects like vault cleanup) live behind the service seam, never in a route handler, CLI command, or MCP tool.
+
+**Accepted carve-out (unchanged from the Python era): thin pass-through delegates in `service/` are deliberate, not redundancy.** Roughly 25 of the 121 `service/` functions are one-line delegations to storage. They exist so the boundary holds and so business logic can be added in one place later without changing call sites. Do not "clean them up" — and do not bypass them because they look hollow; bypassing is what makes them look pointless.
+
+## Current state (2026-08-10)
+
+The rule is stated as binding, and it is currently widely violated: the review inventoried ~50 reach-past call sites across route/CLI/MCP into `storage::` and `sources::`, with `src/route/feed.rs` the extreme case (no service layer at all, which is why the RSS feed is GUI-only). The closure plan is the "Consumers reaching past the service layer" item and its siblings in TODO.md "Architecture review findings" — this ADR is the rule those items enforce, not a description of today's code.
 
 ## Consequences
 
 ### Positive
-- A single write path into storage for paper operations; any invariant added to `service/paper.py` applies to all callers automatically.
-- `api/app.py` is not aware of which storage module backs a given operation.
-- BibTeX import now runs `save_papers_metadata` in a single transaction (the service-layer version) rather than a per-row loop.
+- A single path into storage and sources per operation; an invariant added in `service/` applies to all three surfaces automatically.
+- Surface parity (route/CLI/MCP exposing the same behavior) becomes a matter of wiring, not of re-implementing pipelines per surface.
 
 ### Negative / limits
-- The service-layer delegates are thin wrappers that add no logic today; they exist solely to enforce the boundary. This is intentional overhead we have chosen to adopt.
-- `storage.notes`, `storage.projects`, and `storage.tags` are still imported directly from `api/app.py`; the rule is not yet uniformly enforced across all domains.
+- The delegate wrappers add a layer that does nothing today; that overhead is chosen.
+- Until the reach-past inventory is closed, the rule and the code disagree; new code must follow the rule even where neighboring code does not.
 
 ## References
 
-- `api/app.py` — imports from `service.paper`, `service.tag`
-- `service/paper.py` — delegate wrappers at lines 372–384, 359, 82–91
-- TODO.md — remaining open items: note mutations
+- `src-tauri/src/route/`, `src-tauri/crates/cli/`, `src-tauri/crates/mcp/` — the three consumers
+- `src-tauri/crates/core/src/service/` — the boundary
+- ADR 0022 — the storage-side rule (what the storage seam itself looks like)
+- TODO.md "Architecture review findings (2026-08-06)" — reach-past inventory and closure items
+
+> Re-grounded on the Rust codebase, 2026-08-10 (the decision predates the Rust port; the boundary was widened from `api/app.py`-vs-`storage.*` to all three consumers vs `storage::` + `sources::`).

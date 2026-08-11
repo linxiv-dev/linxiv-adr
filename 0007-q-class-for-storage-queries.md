@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR 0022](0022-storage-query-rule-rust.md) — the Rust port removed the `Q` class and `storage/config/queries.py`; the durable rules (push joins into SQL, no per-row accumulation, the storage seam) carry forward there. This file is kept as the historical record of the Python-era rule.
 
 ## Context
 

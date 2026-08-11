@@ -15,23 +15,23 @@ Three types of rows can become orphaned when papers or projects are deleted:
 The schema uses `ON DELETE CASCADE` for structural child relationships (PAPER → PAPER_META, PAPER → PAPER_TO_AUTHOR, PAPER_ROOTS → PAPER, etc.). However, CASCADE cannot handle orphan cleanup in lookup tables (AUTHOR, TAG) because lookup tables are *parents* of junction tables, not children — CASCADE only flows from parent to child.
 
 Three operations create orphan risk:
-- `db.repair_paper` changes a paper's author list.
-- `db.hard_delete_paper` removes a paper entirely.
-- `service.project.hard_delete` removes a project entirely.
+- `storage::queries::paper::repair_paper` changes a paper's author list.
+- `storage::queries::paper::hard_delete_paper` removes a paper entirely.
+- `service::project::hard_delete` removes a project entirely.
 
 ## Decision
 
 ### AUTHOR rows
 
-**On repair:** `_sync_paper_authors` cleans up orphaned AUTHOR rows after each author-list sync. When authors are removed from a paper, any AUTHOR row no longer referenced by any other paper is deleted. This prevents the AUTHOR lookup table from accumulating stale entries as papers are corrected over time.
+**On repair:** `sync_paper_authors` cleans up orphaned AUTHOR rows after each author-list sync. When authors are removed from a paper, any AUTHOR row no longer referenced by any other paper is deleted. This prevents the AUTHOR lookup table from accumulating stale entries as papers are corrected over time.
 
-**On hard delete:** `hard_delete_paper` relies solely on schema CASCADE to remove `PAPER_TO_AUTHOR` rows when `PAPER_ROOTS` is deleted. It does not call `_sync_paper_authors` and does not clean up orphaned AUTHOR rows. The AUTHOR rows remain as inert entries in the lookup table.
+**On hard delete:** `hard_delete_paper` relies solely on schema CASCADE to remove `PAPER_TO_AUTHOR` rows when `PAPER_ROOTS` is deleted. It does not call `sync_paper_authors` and does not clean up orphaned AUTHOR rows. The AUTHOR rows remain as inert entries in the lookup table.
 
-**Accepted trade-off:** AUTHOR orphans on hard delete are allowed. The cleanup code in `_sync_paper_authors` is tied to the repair workflow where author names change incrementally. Calling it during hard delete would require extracting a helper and changing the deletion transaction — added complexity for a low-priority housekeeping win. An orphaned AUTHOR row has no functional consequence: it never appears in the UI and wastes negligible space. Introduce orphan cleanup if usecase of linxiv changes, but vanishingly small consequences for current usecases.
+**Accepted trade-off:** AUTHOR orphans on hard delete are allowed. The cleanup code in `sync_paper_authors` is tied to the repair workflow where author names change incrementally. Calling it during hard delete would require extracting a helper and changing the deletion transaction — added complexity for a low-priority housekeeping win. An orphaned AUTHOR row has no functional consequence: it never appears in the UI and wastes negligible space. Introduce orphan cleanup if usecase of linxiv changes, but vanishingly small consequences for current usecases.
 
 ### TAG rows
 
-TAG orphans are never cleaned up automatically — not on repair, not on hard delete, not on project delete. `_sync_paper_tags` replaces a paper's tag associations but does not delete TAG rows from the lookup table. `hard_delete_project` deletes `PROJECT_TO_TAG` rows but not the TAG entries.
+TAG orphans are never cleaned up automatically — not on repair, not on hard delete, not on project delete. `sync_paper_tags` replaces a paper's tag associations but does not delete TAG rows from the lookup table. `hard_delete_project` deletes `PROJECT_TO_TAG` rows but not the TAG entries.
 
 **Accepted trade-off:** TAG rows are shared vocabulary across papers and projects. A TAG that is no longer used by any paper or project is still a valid user-defined label that may be reused in the future. Aggressive cleanup risks deleting a tag a user intended to keep. Orphan TAG rows have no functional consequence and waste negligible space. Same as author, will be revisited for edge cases.
 
@@ -45,11 +45,13 @@ When a project is hard-deleted, `hard_delete_project` does **not** delete NOTE r
 
 ### PROJECT_TO_PAPER rows on paper delete
 
-**On soft-delete:** `service.paper.delete` calls `db.soft_delete_paper`, which marks the paper deleted but does not touch `PROJECT_TO_PAPER`. Project membership is intentionally preserved so that if the paper is restored from trash, it returns to all its projects automatically.
+**On soft-delete:** `service::paper::delete` calls `soft_delete_paper`, which marks the paper deleted but does not touch `PROJECT_TO_PAPER`. Project membership is intentionally preserved so that if the paper is restored from trash, it returns to all its projects automatically.
 
-**On hard-delete:** `db.hard_delete_paper` deletes from `PAPER_ROOTS`. Schema CASCADE removes all child rows including `PROJECT_TO_PAPER`. No explicit code needed.
+**On hard-delete:** `hard_delete_paper` deletes from `PAPER_ROOTS`. Schema CASCADE removes all child rows including `PROJECT_TO_PAPER`. No explicit code needed.
 
-**On restore — optional project removal:** The restore endpoint (`GET /api/trash/papers/{source_id}/restore`) returns `project_fks` in its response so the frontend can present a "keep in projects?" prompt. If the user declines, the frontend calls `DELETE /api/projects/{id}/papers/{source_id}` for each returned FK — no dedicated "remove from all projects" backend endpoint is required. The legacy PyQt GUI had inline code for this; that code has been removed as the GUI is replaced by the React frontend.
+**On restore — optional project removal:** The restore endpoint (`POST /api/trash/{source_id}/restore`) returns `project_fks` in its response so the frontend can present a "keep in projects?" prompt. If the user declines, the frontend calls `DELETE /api/projects/{id}/papers/{source_id}` for each returned FK — no dedicated "remove from all projects" backend endpoint is required. The legacy PyQt GUI had inline code for this; that code has been removed as the GUI is replaced by the React frontend.
+
+> **Amended 2026-08-10:** the "no dedicated endpoint" sub-decision was reversed — `DELETE /api/papers/sfk/{fk}/projects` (`remove_from_projects` in `src-tauri/src/route/papers.rs`) now exists and `src/components/settings/TrashSection.tsx` uses it for the decline path. The orphan-row policy itself is unchanged.
 
 ## Consequences
 
@@ -65,7 +67,8 @@ When a project is hard-deleted, `hard_delete_project` does **not** delete NOTE r
 
 ## References
 
-- `storage/db.py` — `_sync_paper_authors`, `hard_delete_paper`
-- `storage/projects.py` — `hard_delete_project`
-- `service/project.py` — `hard_delete`
-- `storage/db.py` — `_sync_paper_tags`
+- `src-tauri/crates/core/src/storage/queries/paper.rs` — `sync_paper_authors`, `hard_delete_paper`, `sync_paper_tags`, `soft_delete_paper`
+- `src-tauri/crates/core/src/storage/queries/project.rs` — `hard_delete_project`
+- `src-tauri/crates/core/src/service/project.rs` — `hard_delete`
+
+> Re-grounded on the Rust codebase, 2026-08-10 (the decision predates the Rust port).

@@ -1,4 +1,4 @@
-# 18. Embed "Open Folder": host-native picker, disk-in-place editing
+# 20. Embed "Open Folder": host-native picker, disk-in-place editing
 
 Date: 2026-06-06
 
@@ -36,7 +36,8 @@ Route the pick and the I/O through the **host**, and edit the picked folder
   against that folder via `tauri-plugin-fs` (newly registered); otherwise ops
   go to the vault responder as before. A vault `doc:open` clears the disk
   root.
-- The pick itself runs in a host **Rust command** (`pick_editor_folder`), not
+- The pick itself runs in a host **Rust command** (the texbrain plugin's
+  `pick_folder`, invoked as `plugin:texbrain|pick_folder`), not
   the JS dialog plugin: the dialog plugin's automatic fs-scope grant is
   non-recursive (subfolder listings fail with "forbidden path"), while the
   Rust side can `allow_directory(path, recursive=true)` for exactly the
