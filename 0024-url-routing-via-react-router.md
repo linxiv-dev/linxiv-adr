@@ -10,7 +10,7 @@ ADR 0001 (PyQt era) kept a `QStackedWidget` index-based back stack with explicit
 
 ## Decision
 
-Navigation is a `createBrowserRouter` route table (`react-router`) in `src/App.tsx` — `library/:sfk`, `projects/:id`, and so on. Back/deep-return is browser history, with advisory location state (e.g. `{ fromProjectId }`, per ADR 0003) where a return target needs context the URL doesn't carry. The Graph page is the one deliberate exception to plain routing: its route renders `element: null` and the graph iframe is kept alive in the shell, so switching tabs doesn't rebuild the simulation.
+Navigation is a `createBrowserRouter` route table (`react-router`) in `src/App.tsx` — `library/:sfk`, `projects/:id`, and so on. Back/deep-return is browser history, with advisory location state (e.g. `{ fromProjectId }`, per ADR 0003) where a return target needs context the URL doesn't carry. The Graph page is the one deliberate exception to plain routing: its route renders `element: null` and the page is kept alive in the shell, so switching tabs doesn't rebuild the force simulation (ADR 0026).
 
 The old ADR's underlying concern — don't build navigation machinery beyond what the shell needs — still stands; it is now satisfied by the router rather than defended against it.
 

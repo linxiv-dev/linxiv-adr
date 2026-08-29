@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted
+Superseded by [ADR 0026](0026-graph-as-a-react-component.md) — the graph is a
+React component now, so the iframe this protocol spanned no longer exists and
+every message type below was deleted with it. Kept as the historical record of
+the iframe era.
 
 ## Context
 
