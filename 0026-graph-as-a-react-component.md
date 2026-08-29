@@ -75,6 +75,33 @@ state, not a `WHERE` clause. Making it a query would mean the excluded papers
 never arrive, and with them would go the ghost, the layout they hold, and the
 counts the panels report about what is being held back.
 
+**Two ways a node stops being fully drawn, and they are not the same.** An
+attribute filter (Category, Title, Author, dates, tag rows) EXCLUDES a node: it
+stays on the canvas as an 8% ghost, so the user can see what they are filtering
+away. A Visibility checkbox (Filters › Visibility › Papers / Authors / Tags)
+HIDES a whole type: those nodes are drawn at opacity 0 and are genuinely gone
+from view.
+
+Both are out of the physics. A node the user cannot see must not shape the
+layout of the ones they can, so hidden types get exactly the ghost's treatment —
+pinned in place, charge 0, collision radius 0, edges dropped from the link force.
+`layoutIds()` in `src/lib/graph/filter.ts` is the single expression of that rule;
+the charge, the collision radius, the link set and the drag release all read it.
+
+They differ in one place: MATCHING. `matchGraph` derives authors and tags purely
+by adjacency to a matching paper and is deliberately blind to the Visibility
+checkboxes — folding them in is what once made unchecking "Papers" blank the
+entire canvas, because it emptied the paper set and authors and tags went with
+it. Match first, hide after.
+
+The known cost: every edge has a paper endpoint, so hiding Papers empties the
+link set and leaves authors and tags with nothing pulling them together. They
+settle into an even spread under repulsion against the centring force, and the
+structure returns intact when Papers does. That is the honest picture — with no
+visible relationships there is nothing to draw them into clusters — and it is
+preferred over the alternative of letting invisible nodes go on arranging the
+visible ones.
+
 **The graph never reloads itself.** Every other screen refetches as soon as its
 data changes somewhere else, and that is right for them: a paper list just
 re-renders with a new row, so being up to date costs nothing. The graph is not
@@ -141,5 +168,8 @@ the user can arrange and one that rearranges itself without being asked.
 - `src-tauri/src/route/graph.rs` — `GET /api/graph`
 - `src/components/graph/GraphCanvas.tsx`, `GraphPanels.tsx`
 - `src/lib/graph/` — the pure modules and their tests
+- `src/lib/tex.tsx` — the MathJax pipeline the hover preview shares with every
+  other paper surface, so arXiv titles and abstracts render rather than showing
+  raw LaTeX source
 - [ADR 0012](0012-graph-iframe-postmessage-protocol.md) — the protocol this replaces
 - Tauri capabilities: <https://tauri.app/security/capabilities/>
