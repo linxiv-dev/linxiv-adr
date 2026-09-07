@@ -21,7 +21,7 @@ Version selection is **compatibility-gated on the bridge protocol**: the Editor'
 
 The plugin's update check is **not a plugin-specific button** — it is unified into linXiv's planned **global "Check for updates"** surface, which does not exist yet. Building the plugin's update check therefore seeds that global surface (which will later also cover the linXiv app itself); app and plugin update-checking share one entry point.
 
-> **Amended 2026-08-10:** the one-entry-point sub-decision diverged in practice — the plugin has its own "Check for updates" button (`src/components/settings/EditorPluginSection.tsx`) and the app updater lives separately in `src/components/settings/AboutSection.tsx` (tauri-plugin-updater, which now exists). Both are in Settings; re-unifying is optional polish, not a standing rule.
+> **Amended 2026-08-10:** the one-entry-point sub-decision diverged in practice — the plugin has its own "Check for updates" button (`src/components/settings/EditorPluginSection.tsx`) and the app updater lives separately in `src/components/settings/AboutSection.tsx` (tauri-plugin-updater, which now exists). Both are in Settings; re-unifying is optional polish, not a standing rule. [Update 2026-09-07: re-unified — the About tab's "Check for updates" now runs both checks and reports each on its own row; `EditorPluginSection` lost its standalone check button but keeps status/install/uninstall, consuming the shared check result.]
 
 **Integrity:** the Host verifies each downloaded artifact against the sha256 in the manifest before extracting/serving; authenticity otherwise rests on HTTPS + the GitHub Releases origin (no separate artifact signing for now).
 
