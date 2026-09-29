@@ -1,4 +1,10 @@
-# Short tickets accept an offline-LAN join regression (left open)
+# ADR 0028: Short tickets accept an offline-LAN join regression (left open)
+
+## Status
+
+Accepted (left open).
+
+## Decision
 
 Share tickets used to embed the peer's full address set (every direct
 IP/LAN/Docker/VPN address), making them long and leaky. linxiv-p2p

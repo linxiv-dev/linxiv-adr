@@ -59,3 +59,4 @@ Until that threshold is reached, the current design remains acceptable.
 - `gui/app_shell.py` — wiring for `navigate_to_project`, `take_paper_id_for_project_return`, `currentChanged` tab behavior
 - `gui/library/page.py` — paper detail → project navigation and return paper id capture
 - `gui/projects/page.py` — `return_to_library_paper_id`, back handling with shell `go_back()`
+
