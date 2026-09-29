@@ -1,10 +1,8 @@
-# 20. Embed "Open Folder": host-native picker, disk-in-place editing
-
-Date: 2026-06-06
+# ADR 0020: Embed "Open Folder": host-native picker, disk-in-place editing
 
 ## Status
 
-Accepted
+Accepted (2026-06-06).
 
 ## Context
 

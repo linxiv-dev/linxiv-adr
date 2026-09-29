@@ -1,4 +1,10 @@
-# Typed structs are the standard for every serialized shape
+# ADR 0029: Typed structs are the standard for every serialized shape
+
+## Status
+
+Accepted.
+
+## Decision
 
 Every wire shape — route envelope, request body, protocol envelope, and
 log record — is a named `Serialize`/`Deserialize` struct, never an inline

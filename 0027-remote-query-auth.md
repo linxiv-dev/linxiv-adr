@@ -1,4 +1,10 @@
-# Remote query auth: one member list, node-side enforcement, transport refusal
+# ADR 0027: Remote query auth: one member list, node-side enforcement, transport refusal
+
+## Status
+
+Accepted.
+
+## Decision
 
 Remote Query Mode (ALPN `linxiv-api/1`) lets an admitted device query a
 headless node's library like its own DB. We decided: (1) a single Member

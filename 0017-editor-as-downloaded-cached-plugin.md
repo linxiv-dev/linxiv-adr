@@ -1,9 +1,12 @@
-# Editor delivered as an online-downloaded, locally-cached plugin
+# ADR 0017: Editor delivered as an online-downloaded, locally-cached plugin
 
----
-Status: accepted — Phases 0–6 implemented (hosting via the custom `texbrain://` scheme; versioning via `bridgeProtocol` compat-gating; integrity via per-artifact sha256; TeXLive served lazily from the compressed cache).
+## Status
+
+Accepted — Phases 0–6 implemented (hosting via the custom `texbrain://` scheme; versioning via `bridgeProtocol` compat-gating; integrity via per-artifact sha256; TeXLive served lazily from the compressed cache).
+
 Note 2026-06-06: the release repo moved to `linxiv-dev/tex-brain-tauri` and is currently PRIVATE — this ADR's distribution model requires a publicly readable release feed (unauthenticated `/releases/latest` + asset downloads). Decision 2026-06-07: the repo WILL be made public before ship (no mirror). Until visibility is flipped, install/update cannot work in shipped builds — flip it as part of the release checklist. [Update 2026-08-10: the repo was since renamed to `linxiv-dev/tex-brain-linxiv-plugin` (see `REPO_SLUG` in the plugin's `install.rs`) and is now public.]
----
+
+## Decision
 
 The embedded LaTeX editor (tex-brain) is **not** bundled into the linXiv installer. Bundling the editor build plus its ~78MB TeXLive cache would bloat the installer and collide with tex-brain's size-reduction roadmap. Instead, **when the user explicitly chooses to install the plugin** (not automatically on first editor open) the Host downloads it from the internet, caches it in the app-data dir, and the Host Rust shell serves it from a custom URI scheme — `texbrain://localhost` (a separate origin, NOT a `/texbrain/*` path under the app origin; see ADR 0015), which is the iframe's `EDITOR_SRC`. This supersedes the "bundle TeXbrain static as a Tauri resource" mechanism in PORT_PLAN.md Milestone 2.
 

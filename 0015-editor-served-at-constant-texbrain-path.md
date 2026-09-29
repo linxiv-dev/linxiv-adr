@@ -1,9 +1,10 @@
-# Editor address is environment-derived; production uses a custom URI scheme (cross-origin)
+# ADR 0015: Editor address is environment-derived; production uses a custom URI scheme (cross-origin)
 
----
-Status: accepted — confirmed by spike `wl6398iw4` (verified against `tauri 2.11.2` source, maintainer issues, and in-repo precedent): runtime-downloaded content **cannot** be served same-origin under `tauri://localhost`, so a custom scheme (separate origin) is required. Note: a *bundled* SPA can be served same-origin (that is how tex-brain serves its own editor), but our editor is runtime-downloaded, which forecloses that route.
----
+## Status
 
+Accepted — confirmed by spike `wl6398iw4` (verified against `tauri 2.11.2` source, maintainer issues, and in-repo precedent): runtime-downloaded content **cannot** be served same-origin under `tauri://localhost`, so a custom scheme (separate origin) is required. Note: a *bundled* SPA can be served same-origin (that is how tex-brain serves its own editor), but our editor is runtime-downloaded, which forecloses that route.
+
+## Decision
 
 The embedded editor's iframe address is **derived from `import.meta.env.DEV`**, not a hard-coded same-origin path:
 

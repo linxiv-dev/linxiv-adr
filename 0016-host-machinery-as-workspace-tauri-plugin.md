@@ -1,4 +1,10 @@
-# Host-side editor delivery implemented as a Tauri plugin in the tex-brain-linxiv-plugin repo (`tauri-plugin-texbrain`)
+# ADR 0016: Host-side editor delivery implemented as a Tauri plugin in the tex-brain-linxiv-plugin repo (`tauri-plugin-texbrain`)
+
+## Status
+
+Accepted.
+
+## Decision
 
 The machinery that downloads, caches, and serves the Editor plugin (ADR 0017) is implemented as a **Tauri plugin crate in the tex-brain-linxiv-plugin repo (formerly tex-brain-tauri), consumed as a rev-pinned git dependency**, `tauri-plugin-texbrain`, rather than inlined in the app's `main.rs`. The work is exactly plugin-shaped — a custom URI-scheme handler that serves the cached editor + TeXLive (with the SwiftLaTeX `fileid`/`pkid` headers), commands invoked from the React frontend (`install`, `check_updates`, `uninstall`, `status`), a permissions manifest, and a guest-js TS API — so the official plugin template (`tauri plugin new`) fits cleanly and yields a first-class permissions boundary plus a tidy JS API.
 
